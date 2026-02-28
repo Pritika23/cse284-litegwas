@@ -1,0 +1,17 @@
+PLINK v2.0.0-a.7LM 64-bit Intel (10 Jan 2026)
+Options in effect:
+  --make-pgen
+  --out chr22_eur_20k_ids
+  --pfile chr22_eur_20k
+  --set-missing-var-ids @:#::
+
+Hostname: Pritika
+Working directory: /mnt/c/Users/user/OneDrive/Desktop/CSE284/litegwas
+Start time: Fri Feb 27 23:06:52 2026
+
+Random number seed: 1772262412
+3774 MiB RAM detected, ~3529 available; reserving 1887 MiB for main workspace.
+Using up to 8 compute threads.
+Error: Failed to open chr22_eur_20k.pgen : No such file or directory.
+
+End time: Fri Feb 27 23:06:52 2026

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.dist-info/
+.ipynb_checkpoints/
+
+# Virtual env
+venv/
+.venv/
+
+# Outputs / generated
+out/
+data/test/
+realdata/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
