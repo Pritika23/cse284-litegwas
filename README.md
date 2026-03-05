@@ -4,90 +4,66 @@ This project implements a lightweight Python implementation of Genome-Wide Assoc
 
 ---
 
-# What Has Been Completed So Far
-
-## 1. Implemented OLS-Based GWAS (from scratch)
+## 1. OLS-Based GWAS (from scratch)
 
 For each SNP, we fit the model:
 
     y = intercept + PC1 + PC2 + PC3 + PC4 + PC5 + SNP + error
 
-Features:
-- Ordinary Least Squares (OLS)
-- Covariate adjustment (top PCs)
-- Minor Allele Frequency (MAF) filtering (MAF ≥ 0.01)
-- Monomorphic SNP handling
-- Singular matrix handling (pseudoinverse fallback)
-- Outputs beta, standard error, t-statistic, p-value, degrees of freedom
-- Manhattan and QQ plot generation
+This system performs Ordinary Least Squares (OLS) regression with Covariate adjustment (using top PCs). We perform Minor Allele Frequency (MAF) filtering (MAF >= 0.01) and do monomorphic SNP handling. 
 
-Core files:
+We also include a pseuroinverse fallback in our code incase we encounter a singular matrix, with the same genotype across all samples for a SNP. The algorithm outputs beta, standard error, t-statistic, p-value, degrees of freedom. And generates the Manhattan and QQ plots.
+
+Important files:
 - `litegwas/core.py` – regression logic
-- `litegwas/run.py` – CLI entry point
+- `litegwas/run.py` – main run code
 - `litegwas/io.py` – input alignment
 - `litegwas/plots.py` – visualization
-- `litegwas/sim.py` – synthetic simulation
 
 ---
 
-## 2. Built Synthetic Data Validation Pipeline
+## 2. Synthetic Data Validation
 
-Created a full simulation workflow to verify correctness:
-
-- Simulate genotype matrix
-- Simulate phenotype using:
-  - m causal SNPs
-  - effect sizes ~ Normal(0, 0.1)
-  - target heritability h²
-- Run LiteGWAS
-- Evaluate recovery of causal variants
+We have also created an example simulation workflow to verify correctness, where we have simulated the genotype matrix and phenotypes and test if we can recover causal variants. 
 
 Run synthetic demo:
 
     ./scripts/run_synth_demo.sh
 
-Outputs:
+The outputs are:
 - `out/results.tsv`
 - Manhattan plot
 - QQ plot
 - Top-k overlap with true causal SNPs
 
-This confirms that the regression implementation correctly recovers signal.
-
 ---
 
-## 3. Applied LGWAS to Real 1000 Genomes Data
+## 3. GWAS to Real 1000 Genomes Data
 
-Dataset used:
-- 1000 Genomes Phase 3
-- Chromosome 22
+The dataset used is the 1000 Genomes Phase 3 dataset, where we focus on Chromosome 22, and use only the EUR ancestry subset. The initial preprocessing was performed with PLINK to get the EUR samples subset, remove non-SNP variants, apply MAF filter, thin variants, assign stable variant IDs and compute top 5 principal components (PCs). After filtering for MAF, we obtain 503 individuals and 2,318 SNPs.
+<!-- - Chromosome 22
 - EUR ancestry subset
 - SNP-only variants
 - MAF ≥ 0.01
 - 503 individuals
-- 2,318 SNPs after filtering
+- 2,318 SNPs after filtering -->
 
-Preprocessing performed with PLINK2:
+<!-- Preprocessing performed with PLINK2:
 - Subset to EUR samples
 - Remove non-SNP variants
 - Apply MAF filter
 - Thin variants
 - Assign stable variant IDs
 - Compute top 5 principal components (PCs)
-- Export dosage matrix
+- Export dosage matrix -->
 
-Converted PLINK2 outputs to LiteGWAS format using:
+We process the .raw file generated using PLINK to get inputs to run GWAS using:
 
     scripts/from_plink2_to_litegwas.py
 
-Generated:
-- geno.npy
-- covar.tsv
-- snp.tsv
-- pheno.tsv
-- causal_truth.tsv
+This generates geno.py (genotype matrix), covar.tsv (covariates), snp.tsv (SNP metadata), pheno.tsv (phenotype information) and causal_truth.tsv (causal SNPs and effect sizes). It requires the .raw file and .pvar or .bim file (depending on use of specific versions of PLINK) as inputs.
 
-Ran LiteGWAS on real data:
+To run on real data:
 
     python -m litegwas.run \
       --geno <path>/geno.npy \
@@ -97,34 +73,41 @@ Ran LiteGWAS on real data:
       --out out/real_results.tsv \
       --plot_prefix out/real
 
-Results:
-- No NaN p-values after filtering
-- Stable regression
-- Real Manhattan and QQ plots generated
-- Strong signal detected (min p ≈ 3e-10)
+In our results, we analyzed the Manhattan and QQ plots, and observed strong signals associated with a p-values close to 3e-10. 
 
 ---
 
 ## 4. Performed Case/control analysis with 1000 Genomes Data
 
-Used 1000 Genomes dataset for chromosome 15, focusing on the EUR ancestry subset. Applied MAF filtering of >= 0.01. 
+We also used 1000 Genomes dataset for chromosome 15, focusing on the EUR ancestry subset. We applied MAF filtering of >= 0.01, and did LD-pruning. Here, we simulated binary phenotypes to perform case/control analysis.
 
-Performed Logistic regression and generated Manhattan and QQ plots.
+We used Logistic regression and generated Manhattan and QQ plots.
 
-# Current Status
+To run:
 
-Completed:
-- Synthetic validation pipeline
-- Real 1000G EUR GWAS run
-- Stable covariate-adjusted regression
-- Visualization
+    python -m litegwas.run \
+      --geno <path>/geno.npy \
+      --pheno <path>/pheno.tsv \
+      --covar <path>/covar.tsv \
+      --snp <path>/snp.tsv \
+      --out out/real_results.tsv \
+      --plot_prefix out/real \
+      --type binary
 
-Next step:
-- Benchmark LiteGWAS against PLINK2
-- Perform comparative analysis
-- Write final report
+Currently, this is not setup to use covariates, so the --covar option can be ignored.
+
+# To do
+
+We have completed most features of our algorithm, and have run it on our dataset, and generated results. Our next steps include:
+- Benchmarking against PLINK and performing comparative analysis
+- Simulating phenotypes using haptools
+- Writing the final report
 
 ---
+
+# Example notebooks
+
+We have demonstrated some of our results on single SNPs and the case/control analysis in the notebooks/ folder.
 
 # Installation
 
@@ -137,3 +120,4 @@ Dependencies:
 - pandas
 - scipy
 - matplotlib
+- statsmodels
