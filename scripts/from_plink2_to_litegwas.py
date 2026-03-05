@@ -77,6 +77,22 @@ def pvar_to_snp(pvar_path: str, raw_snp_cols):
     return snp_df
 
 
+def bim_to_snp(bim_path: str, raw_snp_cols: list[str]) -> pd.DataFrame:
+    bim = pd.read_csv(bim_path, sep=r"\s+", header=None,
+                      names=["chr", "snp_id", "cm", "pos", "a1", "a2"])
+
+    bim_idx = bim.set_index("snp_id")
+
+    try:
+        snp = bim_idx.loc[raw_snp_cols].reset_index()
+    except KeyError as e:
+        missing = [c for c in raw_snp_cols if c not in bim_idx.index]
+        raise KeyError(f"{len(missing)} SNP IDs in .raw not found in .bim. "
+                       f"Example missing: {missing[:5]}") from e
+
+    snp = snp[["snp_id", "chr", "pos", "a1", "a2"]]
+    return snp
+
 # simulate phenotype using the genotype matrix
 def simulate_pheno_from_geno(G, iids, snp_ids, m_causal=25, h2=0.3, seed=42, type="quantitative"):
     rng = np.random.default_rng(seed)
@@ -140,6 +156,7 @@ def main():
     raw_path = args.prefix + ".raw"
     eigenvec_path = args.prefix + ".eigenvec"
     pvar_path = args.prefix + ".pvar"
+    bim_path = args.prefix + ".bim"
     type = args.type
 
     os.makedirs(args.outdir, exist_ok=True)
@@ -155,9 +172,14 @@ def main():
         cov = eigenvec_to_covar(eigenvec_path)
         cov.to_csv(os.path.join(args.outdir, "covar.tsv"), sep="\t", index=False)
 
-    # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
-    snp = pvar_to_snp(pvar_path, raw_snp_cols)
-    snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
+    if os.path.exists(pvar_path):
+        # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
+        snp = pvar_to_snp(pvar_path, raw_snp_cols)
+        snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
+    elif os.path.exists(bim_path):
+        # 3) Build SNP metadata from .bim in the same order as .raw SNP columns
+        snp = bim_to_snp(pvar_path, raw_snp_cols)
+        snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
 
     # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth
     snp_ids = snp["snp_id"].astype(str).tolist()
