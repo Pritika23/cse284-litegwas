@@ -1,6 +1,6 @@
-# LiteGWAS – CSE284 Project
+# CSE284 Project
 
-LiteGWAS is a lightweight Python implementation of covariate-adjusted linear regression for Genome-Wide Association Studies (GWAS). This project implements GWAS from scratch and applies it to both simulated data and real 1000 Genomes data.
+This project implements a lightweight Python implementation of Genome-Wide Association Studies (GWAS) from scratch and applies it to both simulated data and real 1000 Genomes data.
 
 ---
 
@@ -56,7 +56,7 @@ This confirms that the regression implementation correctly recovers signal.
 
 ---
 
-## 3. Applied LiteGWAS to Real 1000 Genomes Data
+## 3. Applied LGWAS to Real 1000 Genomes Data
 
 Dataset used:
 - 1000 Genomes Phase 3
@@ -105,17 +105,11 @@ Results:
 
 ---
 
-## 4. GitHub Repository Setup
+## 4. Performed Case/control analysis with 1000 Genomes Data
 
-- SSH configured for GitHub
-- Repository initialized and pushed
-- `.gitignore` excludes:
-  - venv/
-  - realdata/
-  - out/
-- Code organized for reproducibility
+Used 1000 Genomes dataset for chromosome 15, focusing on the EUR ancestry subset. Applied MAF filtering of >= 0.01. 
 
----
+Performed Logistic regression and generated Manhattan and QQ plots.
 
 # Current Status
 
@@ -124,7 +118,6 @@ Completed:
 - Real 1000G EUR GWAS run
 - Stable covariate-adjusted regression
 - Visualization
-- GitHub setup
 
 Next step:
 - Benchmark LiteGWAS against PLINK2
