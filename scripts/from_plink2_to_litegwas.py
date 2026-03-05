@@ -8,7 +8,6 @@ import pandas as pd
 def load_raw_to_geno(raw_path: str):
     df = pd.read_csv(raw_path, sep=r"\s+", engine="python")
     # PLINK .raw starts with: FID IID PAT MAT SEX PHENOTYPE then SNP columns
-    # Some exports may omit PAT/MAT; handle generically:
     id_cols = [c for c in ["FID", "IID"] if c in df.columns]
     if "IID" not in df.columns:
         raise ValueError("Expected IID column in .raw")
@@ -17,7 +16,7 @@ def load_raw_to_geno(raw_path: str):
     snp_cols = [c for c in df.columns if c not in meta]
 
     G = df[snp_cols].to_numpy(dtype=np.float32)
-    # replace missing values if any
+    # replace missing values if any by mean of that snp column
     if np.isnan(G).any():
         col_means = np.nanmean(G, axis=0)
         inds = np.where(np.isnan(G))
@@ -26,10 +25,11 @@ def load_raw_to_geno(raw_path: str):
     iids = df["IID"].astype(str).tolist()
     return G, iids, snp_cols
 
+# this returns covariate matrix for regression
+
 
 def eigenvec_to_covar(eigenvec_path: str):
     ev = pd.read_csv(eigenvec_path, sep=r"\s+", engine="python")
-    # Usually columns: #IID PC1 PC2 ... or FID IID PC1...
     if "IID" not in ev.columns:
         # sometimes first column is '#IID'
         if "#IID" in ev.columns:
@@ -41,42 +41,11 @@ def eigenvec_to_covar(eigenvec_path: str):
                 ev = ev.rename(columns={cols[1]: "IID"})
             else:
                 raise ValueError("Could not find IID in eigenvec.")
-    # Keep IID + PC columns
+    # keep IID + PC columns
     pc_cols = [c for c in ev.columns if c.startswith("PC")]
     out = ev[["IID"] + pc_cols].copy()
     out["IID"] = out["IID"].astype(str)
     return out
-
-# --- drop-in replacements / edits for from_plink_to_litegwas.py ---
-
-
-def _base_variant_id(raw_col: str) -> str:
-    """
-    Turn a .raw SNP column name into a variant ID that should match the .pvar ID.
-
-    Handles common cases:
-      - "rs123_A" -> "rs123"
-      - "chr:pos:ref:alt_A" -> "chr:pos:ref:alt"
-      - but DOES NOT blindly split at the first "_" (since some IDs include underscores)
-
-    Heuristic:
-      - If the *last* underscore-separated token looks like an allele/dosage tag, drop it.
-      - Otherwise, keep the full string.
-    """
-    parts = raw_col.split("_")
-    if len(parts) <= 1:
-        return raw_col
-
-    last = parts[-1]
-    # Common allele/dosage suffixes seen in exports
-    if last in {"A", "C", "G", "T", "0", "1", "2"}:
-        return "_".join(parts[:-1])
-
-    # Sometimes suffix is longer but still allele-ish (e.g., "ALT", "REF", "HAP1")
-    if re.fullmatch(r"[ACGT]{1,2}", last):
-        return "_".join(parts[:-1])
-
-    return raw_col
 
 
 def pvar_to_snp(pvar_path: str, raw_snp_cols):
@@ -87,8 +56,6 @@ def pvar_to_snp(pvar_path: str, raw_snp_cols):
     we rely on the fact that PLINK writes variants in the SAME order in
     .raw and .pvar.
     """
-
-    import pandas as pd
 
     records = []
     with open(pvar_path) as f:
@@ -121,20 +88,23 @@ def pvar_to_snp(pvar_path: str, raw_snp_cols):
 
     return snp_df
 
+# generate an artificial phenotype (pheno.tsv) from the genotype matrix,
+# and record the “ground truth” causal variants (current set to 25 causal SNPs)
+
 
 def simulate_pheno_from_geno(G, iids, snp_ids, m_causal=25, h2=0.3, seed=42):
-    """
-    Same simulation as before, but truth is recorded as SNP IDs (and indices),
-    making evaluation robust even if ordering changes later.
-    """
     rng = np.random.default_rng(seed)
     N, M = G.shape
     m = min(m_causal, M)
     causal_idx = rng.choice(M, size=m, replace=False)
+    # we sample effects of the snps from this distribution
     effects = rng.normal(0.0, 0.1, size=m).astype(np.float32)
 
     g = G[:, causal_idx] @ effects
     vg = float(np.var(g, ddof=1))
+    # h2 term is heritability -> how much of the phenotype variation
+    # is explained by genetics and how much by noise.
+    # so this is to choose the epsilon value (noise) in the regression
     ve = vg * (1.0 - h2) / max(h2, 1e-6)
 
     y = g + rng.normal(0.0, np.sqrt(ve), size=N).astype(np.float32)
