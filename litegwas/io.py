@@ -11,7 +11,7 @@ def load_geno_npy(path: str) -> np.ndarray:
 
 def load_pheno_tsv(path: str) -> pd.DataFrame:
     df = pd.read_csv(path, sep="\t")
-    if not {"IID", "y"}.issubset(df.columns):
+    if not {"IID", "y"}.issubset(df.columns): # ensures iid and y are columns
         raise ValueError("pheno.tsv must contain columns: IID, y")
     return df[["IID", "y"]].copy()
 
@@ -26,12 +26,7 @@ def load_covar_tsv(path: str | None) -> pd.DataFrame | None:
 
 
 def align_pheno_covar(pheno: pd.DataFrame, covar: pd.DataFrame | None):
-    """
-    Returns:
-      iids: list[str]
-      y: np.ndarray (N,)
-      C: np.ndarray (N,K) or None
-    """
+    #this is to align individuals between phenotypes and genotypes
     if covar is None:
         iids = pheno["IID"].tolist()
         y = pheno["y"].to_numpy()
