@@ -52,7 +52,14 @@ def manhattan_plot(df: pd.DataFrame, out_png: str, title: str = "Manhattan Plot"
         plt.xlabel("Chromosome")
         plt.ylabel("-log10(p)")
         plt.title(title)
-        
+
+    sig_thresh = -np.log10(0.05/len(d["p"]))
+
+    plt.axhline(sig_thresh,
+                color='grey',
+                linestyle='--',
+                linewidth=1,
+                alpha=0.5)
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
     plt.close()

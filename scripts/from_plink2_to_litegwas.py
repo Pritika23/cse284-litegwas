@@ -76,6 +76,19 @@ def pvar_to_snp(pvar_path: str, raw_snp_cols):
 
     return snp_df
 
+_suffix_re = re.compile(r"^(?P<id>.+?)_(?:[ACGT]+|<CN\d+>)$")
+
+def normalize_raw_snp_cols(raw_snp_cols):
+    """
+    Convert PLINK .raw SNP column names like:
+      rs123_A   -> rs123
+      rs123_G   -> rs123
+    """
+    out = []
+    for c in raw_snp_cols:
+        m = _suffix_re.match(c)
+        out.append(m.group("id") if m else c)
+    return out
 
 def bim_to_snp(bim_path: str, raw_snp_cols: list[str]) -> pd.DataFrame:
     bim = pd.read_csv(bim_path, sep=r"\s+", header=None,
@@ -83,8 +96,10 @@ def bim_to_snp(bim_path: str, raw_snp_cols: list[str]) -> pd.DataFrame:
 
     bim_idx = bim.set_index("snp_id")
 
+    raw_base = normalize_raw_snp_cols(raw_snp_cols)
+
     try:
-        snp = bim_idx.loc[raw_snp_cols].reset_index()
+        snp = bim_idx.loc[raw_base].reset_index()
     except KeyError as e:
         missing = [c for c in raw_snp_cols if c not in bim_idx.index]
         raise KeyError(f"{len(missing)} SNP IDs in .raw not found in .bim. "
@@ -121,7 +136,7 @@ def simulate_pheno_from_geno(G, iids, snp_ids, m_causal=25, h2=0.3, seed=42, typ
         })
     else:
         # polygenic score per individual
-        PRS = (G[causal_idx].T @ effects)
+        PRS = (G[:, causal_idx] @ effects)
         PRS = (PRS - PRS.mean()) / PRS.std() # technically not needed
 
         prevalence = 0.3  # fraction of cases we want on average
@@ -178,7 +193,7 @@ def main():
         snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
     elif os.path.exists(bim_path):
         # 3) Build SNP metadata from .bim in the same order as .raw SNP columns
-        snp = bim_to_snp(pvar_path, raw_snp_cols)
+        snp = bim_to_snp(bim_path, raw_snp_cols)
         snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
 
     # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth

@@ -39,38 +39,39 @@ def main():
     snp = load_snp_tsv(args.snp, M=G.shape[1])
 
     # Type = quantitative
-    beta, se, tstat, pval, df = gwas_ols(G, y, C)
+    if args.type == "quantitative":
+        beta, se, tstat, pval, df = gwas_ols(G, y, C)
 
-    out_df = snp.copy()
-    out_df["beta"] = beta
-    out_df["se"] = se
-    out_df["t"] = tstat
-    out_df["p"] = pval
-    out_df["df"] = df
+        out_df = snp.copy()
+        out_df["beta"] = beta
+        out_df["se"] = se
+        out_df["t"] = tstat
+        out_df["p"] = pval
+        out_df["df"] = df
 
-    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    out_df.to_csv(args.out, sep="\t", index=False)
-    print(f"Results written to: {args.out}")
-    if args.plot_prefix is not None:
-        man_png = f"{args.plot_prefix}_manhattan.png"
-        qq_png = f"{args.plot_prefix}_qq.png"
-        manhattan_plot(out_df, man_png, title="GWAS Manhattan")
-        qq_plot(out_df, qq_png, title="GWAS QQ")
-        print(f"Saved plots: {man_png}, {qq_png}")
-
-    # # Type = case/control
-    # pval = gwas_logistic(G, y, C)
-    # out_df = snp.copy()
-    # out_df["p"] = pval
-    # os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    # out_df.to_csv(args.out, sep="\t", index=False)
-    # print(f"Results written to: {args.out}")
-    # if args.plot_prefix is not None:
-    #     man_png = f"{args.plot_prefix}_manhattan.png"
-    #     qq_png = f"{args.plot_prefix}_qq.png"
-    #     manhattan_plot(out_df, man_png, title="GWAS Manhattan")
-    #     qq_plot(out_df, qq_png, title="GWAS QQ")
-    #     print(f"Saved plots: {man_png}, {qq_png}")
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        out_df.to_csv(args.out, sep="\t", index=False)
+        print(f"Results written to: {args.out}")
+        if args.plot_prefix is not None:
+            man_png = f"{args.plot_prefix}_manhattan.png"
+            qq_png = f"{args.plot_prefix}_qq.png"
+            manhattan_plot(out_df, man_png, title="GWAS Manhattan")
+            qq_plot(out_df, qq_png, title="GWAS QQ")
+            print(f"Saved plots: {man_png}, {qq_png}")
+    else:
+         # Type = case/control
+        pval = gwas_logistic(G, y, C)
+        out_df = snp.copy()
+        out_df["p"] = pval
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        out_df.to_csv(args.out, sep="\t", index=False)
+        print(f"Results written to: {args.out}")
+        if args.plot_prefix is not None:
+            man_png = f"{args.plot_prefix}_manhattan.png"
+            qq_png = f"{args.plot_prefix}_qq.png"
+            manhattan_plot(out_df, man_png, title="GWAS Manhattan")
+            qq_plot(out_df, qq_png, title="GWAS QQ")
+            print(f"Saved plots: {man_png}, {qq_png}")
 
 
 if __name__ == "__main__":

@@ -77,10 +77,11 @@ def gwas_ols(G: np.ndarray, y: np.ndarray, C: np.ndarray | None):
 
 def gwas_logistic(G, y, C):
     p_values = []
+    G_t = G.T
 
-    for i in range(G.shape[0]):
+    for i in range(G_t.shape[0]):
 
-        snp_genotypes = G[i, :].astype(float)
+        snp_genotypes = G_t[i, :].astype(float)
 
         # skip SNPs with no variation
         if np.std(snp_genotypes) == 0:
