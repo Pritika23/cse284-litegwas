@@ -49,14 +49,7 @@ def eigenvec_to_covar(eigenvec_path: str):
 
 
 def pvar_to_snp(pvar_path: str, raw_snp_cols):
-    """
-    Build snp.tsv aligned with geno.npy using variant order.
-
-    Since .raw SNP columns often look like '._ALT' when variant IDs are '.',
-    we rely on the fact that PLINK writes variants in the SAME order in
-    .raw and .pvar.
-    """
-
+    # to build snp.tsv aligned with geno.npy using variant order
     records = []
     with open(pvar_path) as f:
         for line in f:
