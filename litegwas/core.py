@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import stats
-
+import statsmodels.api as sm
 
 def gwas_ols(G: np.ndarray, y: np.ndarray, C: np.ndarray | None):
     if G.ndim != 2:
@@ -74,3 +74,30 @@ def gwas_ols(G: np.ndarray, y: np.ndarray, C: np.ndarray | None):
         pval[j] = pj
 
     return beta, se, tstat, pval, df
+
+def gwas_logistic(G, y, C):
+    p_values = []
+
+    for i in range(G.shape[0]):
+
+        snp_genotypes = G[i, :].astype(float)
+
+        # skip SNPs with no variation
+        if np.std(snp_genotypes) == 0:
+            p_values.append(1.0)
+            continue
+
+        X = sm.add_constant(snp_genotypes)
+
+        try:
+            result = sm.Logit(y, X).fit(disp=False)
+
+            if result.mle_retvals["converged"]:
+                p_values.append(result.pvalues[1])
+            else:
+                p_values.append(1.0)
+
+        except:
+            p_values.append(1.0)
+
+    return p_values

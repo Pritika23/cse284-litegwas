@@ -155,13 +155,12 @@ def main():
         cov = eigenvec_to_covar(eigenvec_path)
         cov.to_csv(os.path.join(args.outdir, "covar.tsv"), sep="\t", index=False)
 
-        # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
-        #    (critical when .raw columns look like '._G' etc and IDs are missing)
-        snp = pvar_to_snp(pvar_path, raw_snp_cols)
-        snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
+    # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
+    snp = pvar_to_snp(pvar_path, raw_snp_cols)
+    snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
 
-        # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth
-        snp_ids = snp["snp_id"].astype(str).tolist()
+    # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth
+    snp_ids = snp["snp_id"].astype(str).tolist()
 
     # 5) Simulate phenotype + causal truth (stores SNP IDs + indices)
     pheno, truth = simulate_pheno_from_geno(
