@@ -19,28 +19,40 @@ def manhattan_plot(df: pd.DataFrame, out_png: str, title: str = "Manhattan Plot"
 
     # Create a cumulative position for plotting across chromosomes
     chroms = d["chr"].unique().tolist()
-    offset = 0
-    ticks = []
-    ticklabels = []
-    cum_pos = np.zeros(len(d), dtype=np.int64)
-
-    for c in chroms:
-        mask = (d["chr"] == c).values
-        positions = d.loc[mask, "pos"].values.astype(np.int64)
-        cum_pos[mask] = positions + offset
-        mid = (positions.min() + positions.max()) // 2 + offset
-        ticks.append(mid)
-        ticklabels.append(c)
-        offset += positions.max()
-
-    d["cum_pos"] = cum_pos
 
     plt.figure(figsize=(12, 4))
-    plt.scatter(d["cum_pos"], d["mlogp"], s=6)
-    plt.xticks(ticks, ticklabels)
-    plt.xlabel("Chromosome")
-    plt.ylabel("-log10(p)")
-    plt.title(title)
+
+    # SINGLE CHROMOSOME
+    if len(chroms) == 1:
+        plt.scatter(d["pos"], d["mlogp"], s=6)
+
+        plt.xlabel(f"Genomic Position (chr{chroms[0]})")
+        plt.ylabel("-log10(p)")
+        plt.title(title)
+    # MULTIPLE CHROMOSOMES
+    else:
+        offset = 0
+        ticks = []
+        ticklabels = []
+        cum_pos = np.zeros(len(d), dtype=np.int64)
+
+        for c in chroms:
+            mask = (d["chr"] == c).values
+            positions = d.loc[mask, "pos"].values.astype(np.int64)
+            cum_pos[mask] = positions + offset
+            mid = (positions.min() + positions.max()) // 2 + offset
+            ticks.append(mid)
+            ticklabels.append(c)
+            offset += positions.max()
+
+        d["cum_pos"] = cum_pos
+
+        plt.scatter(d["cum_pos"], d["mlogp"], s=6)
+        plt.xticks(ticks, ticklabels)
+        plt.xlabel("Chromosome")
+        plt.ylabel("-log10(p)")
+        plt.title(title)
+        
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
     plt.close()
