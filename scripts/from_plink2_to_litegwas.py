@@ -3,24 +3,19 @@ import argparse
 import os
 import numpy as np
 import pandas as pd
-
+from scipy.special import expit  # sigmoid
 
 def load_raw_to_geno(raw_path: str):
     df = pd.read_csv(raw_path, sep=r"\s+", engine="python")
-    # PLINK .raw starts with: FID IID PAT MAT SEX PHENOTYPE then SNP columns
+    # FID IID PAT MAT SEX PHENOTYPE then SNP columns
     id_cols = [c for c in ["FID", "IID"] if c in df.columns]
     if "IID" not in df.columns:
         raise ValueError("Expected IID column in .raw")
-    # SNP columns are everything except known metadata columns
+
     meta = set(["FID", "IID", "PAT", "MAT", "SEX", "PHENOTYPE"])
     snp_cols = [c for c in df.columns if c not in meta]
 
-    G = df[snp_cols].to_numpy(dtype=np.float32)
-    # replace missing values if any by mean of that snp column
-    if np.isnan(G).any():
-        col_means = np.nanmean(G, axis=0)
-        inds = np.where(np.isnan(G))
-        G[inds] = col_means[inds[1]]
+    G = df[snp_cols].fillna(0).to_numpy(dtype=np.float32)
 
     iids = df["IID"].astype(str).tolist()
     return G, iids, snp_cols
@@ -81,33 +76,52 @@ def pvar_to_snp(pvar_path: str, raw_snp_cols):
 
     return snp_df
 
-# generate an artificial phenotype (pheno.tsv) from the genotype matrix,
-# and record the “ground truth” causal variants (current set to 25 causal SNPs)
 
-
-def simulate_pheno_from_geno(G, iids, snp_ids, m_causal=25, h2=0.3, seed=42):
+# simulate phenotype using the genotype matrix
+def simulate_pheno_from_geno(G, iids, snp_ids, m_causal=25, h2=0.3, seed=42, type="quantitative"):
     rng = np.random.default_rng(seed)
     N, M = G.shape
     m = min(m_causal, M)
     causal_idx = rng.choice(M, size=m, replace=False)
     # we sample effects of the snps from this distribution
     effects = rng.normal(0.0, 0.1, size=m).astype(np.float32)
+    if type=="quantitative":
+        
+        g = G[:, causal_idx] @ effects
+        vg = float(np.var(g, ddof=1))
+        if h2 is not None:
+            # h2 term is heritability -> how much of the phenotype variation is explained by genetics and how much by noise. so this is to choose the epsilon value (noise) in the regression
+            ve = vg * (1.0 - h2) / max(h2, 1e-6)
+        else:
+            ve = 1.0
 
-    g = G[:, causal_idx] @ effects
-    vg = float(np.var(g, ddof=1))
-    # h2 term is heritability -> how much of the phenotype variation
-    # is explained by genetics and how much by noise.
-    # so this is to choose the epsilon value (noise) in the regression
-    ve = vg * (1.0 - h2) / max(h2, 1e-6)
+        y = g + rng.normal(0.0, np.sqrt(ve), size=N).astype(np.float32)
+        pheno = pd.DataFrame({"IID": list(map(str, iids)), "y": y})
 
-    y = g + rng.normal(0.0, np.sqrt(ve), size=N).astype(np.float32)
-    pheno = pd.DataFrame({"IID": list(map(str, iids)), "y": y})
+        truth = pd.DataFrame({
+            "causal_snp_index": causal_idx,
+            "causal_snp_id": [snp_ids[i] for i in causal_idx],
+            "effect": effects,
+        })
+    else:
+        # polygenic score per individual
+        PRS = (G[causal_idx].T @ effects)
+        PRS = (PRS - PRS.mean()) / PRS.std() # technically not needed
 
-    truth = pd.DataFrame({
-        "causal_snp_index": causal_idx,
-        "causal_snp_id": [snp_ids[i] for i in causal_idx],
-        "effect": effects,
-    })
+        prevalence = 0.3  # fraction of cases we want on average
+        alpha = np.log(prevalence / (1 - prevalence))
+
+        # compute probabilities and sample case/control labels
+        p = expit(alpha + PRS)
+        y = rng.binomial(1, p, size=N)
+        pheno = pd.DataFrame({"IID": list(map(str, iids)), "y": y})
+
+        truth = pd.DataFrame({
+            "causal_snp_index": causal_idx,
+            "causal_snp_id": [snp_ids[i] for i in causal_idx],
+            "effect": effects,
+        })
+
     return pheno, truth
 
 
@@ -120,11 +134,13 @@ def main():
     ap.add_argument("--m_causal", type=int, default=25)
     ap.add_argument("--h2", type=float, default=0.3)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--type", type=str, default="quantitative")
     args = ap.parse_args()
 
     raw_path = args.prefix + ".raw"
     eigenvec_path = args.prefix + ".eigenvec"
     pvar_path = args.prefix + ".pvar"
+    type = args.type
 
     os.makedirs(args.outdir, exist_ok=True)
 
@@ -133,17 +149,19 @@ def main():
     print("Example .raw SNP columns:", raw_snp_cols[:5])
     np.save(os.path.join(args.outdir, "geno.npy"), G)
 
-    # 2) Load covariates (PCs) from .eigenvec
-    cov = eigenvec_to_covar(eigenvec_path)
-    cov.to_csv(os.path.join(args.outdir, "covar.tsv"), sep="\t", index=False)
+    # PCs not setup for case/control analysis yet
+    if type == "quantitative":
+        # 2) Load covariates (PCs) from .eigenvec
+        cov = eigenvec_to_covar(eigenvec_path)
+        cov.to_csv(os.path.join(args.outdir, "covar.tsv"), sep="\t", index=False)
 
-    # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
-    #    (critical when .raw columns look like '._G' etc and IDs are missing)
-    snp = pvar_to_snp(pvar_path, raw_snp_cols)
-    snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
+        # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
+        #    (critical when .raw columns look like '._G' etc and IDs are missing)
+        snp = pvar_to_snp(pvar_path, raw_snp_cols)
+        snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
 
-    # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth
-    snp_ids = snp["snp_id"].astype(str).tolist()
+        # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth
+        snp_ids = snp["snp_id"].astype(str).tolist()
 
     # 5) Simulate phenotype + causal truth (stores SNP IDs + indices)
     pheno, truth = simulate_pheno_from_geno(
@@ -153,13 +171,14 @@ def main():
         m_causal=args.m_causal,
         h2=args.h2,
         seed=args.seed,
+        type=type
     )
     pheno.to_csv(os.path.join(args.outdir, "pheno.tsv"), sep="\t", index=False)
     truth.to_csv(os.path.join(args.outdir, "causal_truth.tsv"),
                  sep="\t", index=False)
 
-    print(f"✅ Wrote LiteGWAS inputs to {args.outdir}")
-    print("Files: geno.npy, covar.tsv, snp.tsv, pheno.tsv, causal_truth.tsv")
+    print(f"Wrote GWAS inputs to {args.outdir}")
+    # print("Files: geno.npy, covar.tsv, snp.tsv, pheno.tsv, causal_truth.tsv")
 
 
 if __name__ == "__main__":
