@@ -189,6 +189,91 @@ The script reports:
 - Correlation between estimated SNP effect sizes
 - Overlap among the top-ranked SNPs
 
+## Runtime Benchmark: LiteGWAS vs PLINK2
+
+To evaluate the runtime performance of LiteGWAS, we benchmark it against **PLINK2**, a widely used and highly optimized GWAS tool written in C/C++. Both tools were run on the same dataset with identical phenotype and covariates.
+
+### Dataset
+
+- **Individuals:** 503  
+- **Variants (SNPs):** 2318  
+- **Covariates:** 5 principal components (PC1–PC5)
+
+---
+
+## Running PLINK2
+
+```bash
+/usr/bin/time -v plink2 \
+  --pfile realdata/chr22/chr22_eur_20k_maf01_snps_ids \
+  --pheno litegwas_input/pheno.tsv \
+  --pheno-name y \
+  --covar litegwas_input/covar.tsv \
+  --covar-name PC1,PC2,PC3,PC4,PC5 \
+  --glm \
+  --out plink_results
+```
+
+Output file:
+
+```
+plink_results.y.glm.linear
+```
+
+---
+
+## Running LiteGWAS
+
+```bash
+/usr/bin/time -v python -m litegwas.run \
+  --geno litegwas_input/geno.npy \
+  --pheno litegwas_input/pheno.tsv \
+  --covar litegwas_input/covar.tsv \
+  --snp litegwas_input/snp.tsv \
+  --out out/real_results.tsv \
+  --plot_prefix out/real
+```
+
+Outputs:
+
+```
+out/real_results.tsv
+out/real_manhattan.png
+out/real_qq.png
+```
+
+---
+
+## Runtime Results
+
+| Tool | Runtime | Peak Memory |
+|-----|------|------|
+| **PLINK2** | 0.20 s | ~14 MB |
+| **LiteGWAS** | 46.85 s | ~366 MB |
+
+---
+
+## Interpretation
+
+PLINK2 is significantly faster because it is implemented in **optimized C/C++ with multithreading and efficient genotype storage formats**.
+
+LiteGWAS, implemented in **Python with NumPy**, prioritizes:
+
+- simplicity
+- readability
+- reproducibility
+
+Both tools perform **SNP-wise association testing**, which scales approximately as:
+
+\[
+O(MN)
+\]
+
+where:
+
+- \(M\) = number of variants  
+- \(N\) = number of individuals  
+
 # To do
 
 We have completed most features of our algorithm, and have run it on our dataset, and generated results. Our next steps include:
@@ -215,3 +300,4 @@ Dependencies:
 - matplotlib
 
 - statsmodels
+
