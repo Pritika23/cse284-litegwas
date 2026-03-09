@@ -274,13 +274,6 @@ where:
 - \(M\) = number of variants  
 - \(N\) = number of individuals  
 
-# To do
-
-We have completed most features of our algorithm, and have run it on our dataset, and generated results. Our next steps include:
-- Benchmarking against PLINK and performing comparative analysis
-- Simulating phenotypes using haptools
-- Writing the final report
-
 ---
 
 # Example notebooks
@@ -300,4 +293,5 @@ Dependencies:
 - matplotlib
 
 - statsmodels
+
 
