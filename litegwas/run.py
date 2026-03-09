@@ -60,9 +60,10 @@ def main():
             print(f"Saved plots: {man_png}, {qq_png}")
     else:
          # Type = case/control
-        pval = gwas_logistic(G, y, C)
+        pval, betaval = gwas_logistic(G, y, C)
         out_df = snp.copy()
         out_df["p"] = pval
+        out_df["or"] = betaval
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         out_df.to_csv(args.out, sep="\t", index=False)
         print(f"Results written to: {args.out}")

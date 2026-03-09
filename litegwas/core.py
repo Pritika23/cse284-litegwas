@@ -77,6 +77,7 @@ def gwas_ols(G: np.ndarray, y: np.ndarray, C: np.ndarray | None):
 
 def gwas_logistic(G, y, C):
     p_values = []
+    beta_vals = []
     G_t = G.T
 
     for i in range(G_t.shape[0]):
@@ -86,6 +87,7 @@ def gwas_logistic(G, y, C):
         # skip SNPs with no variation
         if np.std(snp_genotypes) == 0:
             p_values.append(1.0)
+            beta_vals.append(0.0)
             continue
 
         X = sm.add_constant(snp_genotypes)
@@ -95,10 +97,13 @@ def gwas_logistic(G, y, C):
 
             if result.mle_retvals["converged"]:
                 p_values.append(result.pvalues[1])
+                beta_vals.append(np.exp(result.params[1]))
             else:
                 p_values.append(1.0)
+                beta_vals.append(0.0)
 
         except:
             p_values.append(1.0)
+            beta_vals.append(0.0)
 
-    return p_values
+    return p_values, beta_vals
