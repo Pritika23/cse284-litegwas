@@ -20,3 +20,6 @@ realdata/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# PLINK outputs
+plink_*
