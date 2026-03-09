@@ -1,6 +1,54 @@
 import argparse
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
+# from litegwas.plots import log_odds_comp, logp_comp, beta_comp
+
+def log_odds_comp(m, out_png: str, title: str = "Effect size"):
+    plt.figure(figsize=(6,6))
+    plt.scatter(np.log(m["OR_P"]), np.log(m["or"]), s=6, alpha=0.5)
+    lims = [
+        min(np.log(m["OR_P"]).min(), np.log(m["or"]).min()),
+        max(np.log(m["OR_P"]).max(), np.log(m["or"]).max())
+    ]
+    plt.plot(lims, lims, 'r--', linewidth=1)
+    plt.xlabel("PLINK log-odds ratio")
+    plt.ylabel("PythonGWAS log-odds ratio")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=200)
+    plt.close()
+
+def beta_comp(m, out_png: str, title: str = "Effect size"):
+    plt.figure(figsize=(6,6))
+    plt.scatter(m["BETA_P"], m["beta"], s=6, alpha=0.5)
+    lims = [
+        min(m["BETA_P"].min(), m["beta"].min()),
+        max(m["BETA_P"].max(), m["beta"].max())
+    ]
+    plt.plot(lims, lims, 'r--', linewidth=1)
+    plt.xlabel("PLINK beta")
+    plt.ylabel("PythonGWAS beta")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=200)
+    plt.close()
+
+def logp_comp(m, out_png: str, title: str = "Association significance"):
+    plt.figure(figsize=(6,6))
+    plt.scatter(m["lp_plink"], m["lp_lite"], s=6, alpha=0.5)
+    lims = [
+        min(m["lp_plink"].min(), m["lp_lite"].min()),
+        max(m["lp_plink"].max(), m["lp_lite"].max())
+    ]
+    plt.plot(lims, lims, 'r--', linewidth=1)
+    plt.xlabel("PLINK -log10(p)")
+    plt.ylabel("PythonGWAS -log10(p)")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=200)
+    plt.close()
 
 def _norm_chr(x):
     s = str(x)
@@ -12,12 +60,13 @@ def main():
     ap.add_argument("--plink", required=True, help="PLINK2 .glm.linear file (results/plink2.y.glm.linear) or .logistic file (notebooks/results/gwas_results.assoc.logistic)")
     ap.add_argument("--type", default="quantitative", help="Quantitative or binary (case/control)")
     ap.add_argument("--topk", type=int, default=100, help="Top-k for overlap")
+    ap.add_argument("--plot_prefix", default=None, help="If set, saves {prefix}_beta.png and {prefix}_logp.png")
     args = ap.parse_args()
 
     lite = pd.read_csv(args.lite, sep="\t")
     plink = pd.read_csv(args.plink, sep=r"\s+", engine="python")
 
-    if type=="quantitative":
+    if args.type=="quantitative":
         # --- Lite requirements (from your litegwas output) ---
         for c in ["chr", "pos", "beta", "p", "a1", "a2"]:
             if c not in lite.columns:
@@ -89,6 +138,11 @@ def main():
         print(f"Pearson corr(beta) after allele-align: {pearson_beta:.4f}")
         print(f"Spearman corr(-log10 p): {spearman_lp:.4f}")
         print(f"Top-{k} Jaccard overlap: {jacc:.4f}")
+
+        beta_png = f"{args.plot_prefix}_beta.png"
+        logp_png = f"{args.plot_prefix}_logp.png"
+        beta_comp(m, beta_png)
+        logp_comp(m, logp_png)
     
     else:
         # --- Lite requirements (from your litegwas output) ---
@@ -169,6 +223,11 @@ def main():
         print(f"Pearson corr(log-odds) after allele-align: {pearson_beta:.4f}")
         print(f"Spearman corr(-log10 p): {spearman_lp:.4f}")
         print(f"Top-{k} Jaccard overlap: {jacc:.4f}")
+
+        beta_png = f"{args.plot_prefix}_beta.png"
+        logp_png = f"{args.plot_prefix}_logp.png"
+        log_odds_comp(m, beta_png)
+        logp_comp(m, logp_png)
 
 if __name__ == "__main__":
     main()
