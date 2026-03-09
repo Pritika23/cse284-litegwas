@@ -96,6 +96,99 @@ To run:
 
 Currently, this is not setup to use covariates, so the --covar option can be ignored.
 
+## Benchmarking LiteGWAS Against PLINK2
+
+To validate our implementation, we compare LiteGWAS results with the standard GWAS implementation provided by **PLINK2**. Both tools run linear regression using the same genotype data, phenotype, and covariates.
+
+---
+
+## 1. Compute Principal Components (Covariates)
+
+Population structure can confound GWAS results, so we compute the top 5 principal components using PLINK2:
+
+```bash
+plink2 \
+  --pfile chr22_eur_20k_maf01_snps_ids \
+  --pca 5 \
+  --out chr22_eur_20k_maf01_snps_ids
+```
+
+This produces:
+
+```
+chr22_eur_20k_maf01_snps_ids.eigenvec
+```
+
+which contains the top principal components used as covariates.
+
+---
+
+## 2. Run GWAS with PLINK2
+
+We run PLINK’s linear regression GWAS using the same phenotype and covariates used by LiteGWAS.
+
+```bash
+plink2 \
+  --pfile chr22_eur_20k_maf01_snps_ids \
+  --pheno litegwas_inputs/pheno.tsv \
+  --pheno-name y \
+  --covar litegwas_inputs/covar.tsv \
+  --covar-name PC1,PC2,PC3,PC4,PC5 \
+  --glm \
+  --out plink_results
+```
+
+This generates the association results file:
+
+```
+plink_results.y.glm.linear
+```
+
+which contains effect sizes, standard errors, and p-values for each SNP.
+
+---
+
+## 3. Run LiteGWAS
+
+LiteGWAS can be run using the following command:
+
+```bash
+python -m litegwas.run \
+  --geno litegwas_inputs/geno.npy \
+  --pheno litegwas_inputs/pheno.tsv \
+  --covar litegwas_inputs/covar.tsv \
+  --snp litegwas_inputs/snp.tsv \
+  --out out/real_results.tsv \
+  --plot_prefix out/real
+```
+
+This produces:
+
+```
+out/real_results.tsv
+out/real_manhattan.png
+out/real_qq.png
+```
+
+---
+
+## 4. Compare Results
+
+We compare the results of LiteGWAS and PLINK using the provided comparison script:
+
+```bash
+python scripts/compare_to_plink2_alleleaware.py \
+  --lite out/real_results.tsv \
+  --plink plink_results.y.glm.linear \
+  --topk 100
+```
+
+The script reports:
+
+- Number of shared variants between the two outputs
+- Correlation between estimated SNP effect sizes
+- Overlap among the top-ranked SNPs
+
 # To do
 
 We have completed most features of our algorithm, and have run it on our dataset, and generated results. Our next steps include:
@@ -120,4 +213,5 @@ Dependencies:
 - pandas
 - scipy
 - matplotlib
+
 - statsmodels
