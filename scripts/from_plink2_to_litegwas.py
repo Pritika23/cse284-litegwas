@@ -175,7 +175,7 @@ def main():
 
     os.makedirs(args.outdir, exist_ok=True)
 
-    # 1) Load genotype matrix from .raw
+    # Load genotype matrix from .raw
     G, iids, raw_snp_cols = load_raw_to_geno(raw_path)
     print("Example .raw SNP columns:", raw_snp_cols[:5])
     np.save(os.path.join(args.outdir, "geno.npy"), G)
