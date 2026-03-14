@@ -15,7 +15,7 @@ def log_odds_comp(m, out_png: str, title: str = "Effect size"):
     ]
     plt.plot(lims, lims, "r--", linewidth=1)
     plt.xlabel("PLINK log-odds ratio")
-    plt.ylabel("PythonGWAS log-odds ratio")
+    plt.ylabel("PyGWAS log-odds ratio")
     plt.title(title)
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
@@ -31,7 +31,7 @@ def beta_comp(m, out_png: str, title: str = "Effect size"):
     ]
     plt.plot(lims, lims, "r--", linewidth=1)
     plt.xlabel("PLINK beta")
-    plt.ylabel("PythonGWAS beta")
+    plt.ylabel("PyGWAS beta")
     plt.title(title)
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
