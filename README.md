@@ -4,7 +4,7 @@ This project implements a lightweight Python implementation of Genome-Wide Assoc
 
 ---
 
-## 1. OLS-Based GWAS (from scratch)
+## 1. OLS-Based GWAS
 
 For each SNP, we fit the model:
 
@@ -146,6 +146,22 @@ plink_results.y.glm.linear
 
 which contains effect sizes, standard errors, and p-values for each SNP.
 
+Similarly, for logistic regression, we run,
+```bash
+plink \
+  --bfile eur.qc.pruned \
+  --pheno phenotypes_casecontrol.txt \
+  --logistic \
+  --out gwas_results \
+  --allow-no-sex
+```
+
+This generates the association results file:
+
+```
+gwas_results.assoc.logistic
+```
+
 ---
 
 ## 3. Run LiteGWAS
@@ -159,6 +175,7 @@ python -m litegwas.run \
   --covar litegwas_inputs/covar.tsv \
   --snp litegwas_inputs/snp.tsv \
   --out out/real_results.tsv \
+  --type type \
   --plot_prefix out/real
 ```
 
@@ -182,12 +199,21 @@ python scripts/compare_to_plink2_alleleaware.py \
   --plink plink_results.y.glm.linear \
   --topk 100
 ```
+or 
+```bash
+python scripts/compare_to_plink2_alleleaware.py \
+  --lite out/real_results.tsv \
+  --plink gwas_results.assoc.logistic \
+  --topk 100 \
+  --type binary
+```
 
 The script reports:
 
 - Number of shared variants between the two outputs
 - Correlation between estimated SNP effect sizes
 - Overlap among the top-ranked SNPs
+- Plots showing the correlations between the effect sizes and the negative logarithm of the p values
 
 ## Runtime Benchmark: LiteGWAS vs PLINK2
 
@@ -251,28 +277,8 @@ out/real_qq.png
 | **PLINK2** | 0.20 s | ~14 MB |
 | **LiteGWAS** | 46.85 s | ~366 MB |
 
----
-
-## Interpretation
 
 PLINK2 is significantly faster because it is implemented in **optimized C/C++ with multithreading and efficient genotype storage formats**.
-
-LiteGWAS, implemented in **Python with NumPy**, prioritizes:
-
-- simplicity
-- readability
-- reproducibility
-
-Both tools perform **SNP-wise association testing**, which scales approximately as:
-
-\[
-O(MN)
-\]
-
-where:
-
-- \(M\) = number of variants  
-- \(N\) = number of individuals  
 
 ---
 
