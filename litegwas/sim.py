@@ -15,7 +15,7 @@ def simulate_genotypes(N, M, seed=0):
 
 def simulate_covariates(N, K, seed=0):
     rng = np.random.default_rng(seed + 1)
-    # "PC-like" covariates (just Gaussian for MVP)
+    # "PC-like" covariates
     C = rng.normal(size=(N, K)).astype(np.float32)
     return C
 
@@ -84,7 +84,6 @@ def main():
     })
     snp_df.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
 
-    # Save ground truth (so you can verify top hits later)
     truth_df = pd.DataFrame({
         "causal_snp_id": [snp_ids[i] for i in causal_idx],
         "effect": effects

@@ -137,7 +137,6 @@ def simulate_pheno_from_geno(G, iids, snp_ids, m_causal=25, h2=0.3, seed=42, typ
     else:
         # polygenic score per individual
         PRS = (G[:, causal_idx] @ effects)
-        PRS = (PRS - PRS.mean()) / PRS.std() # technically not needed
 
         prevalence = 0.3  # fraction of cases we want on average
         alpha = np.log(prevalence / (1 - prevalence))
@@ -161,7 +160,7 @@ def main():
     ap.add_argument("--prefix", required=True,
                     help="PLINK2 prefix, e.g. chr22_eur_20k")
     ap.add_argument("--outdir", required=True,
-                    help="Output directory for LiteGWAS inputs")
+                    help="Output directory for PyGWAS inputs")
     ap.add_argument("--m_causal", type=int, default=25)
     ap.add_argument("--h2", type=float, default=0.3)
     ap.add_argument("--seed", type=int, default=42)
@@ -183,23 +182,18 @@ def main():
 
     # PCs not setup for case/control analysis yet
     if type == "quantitative":
-        # 2) Load covariates (PCs) from .eigenvec
         cov = eigenvec_to_covar(eigenvec_path)
         cov.to_csv(os.path.join(args.outdir, "covar.tsv"), sep="\t", index=False)
 
     if os.path.exists(pvar_path):
-        # 3) Build SNP metadata from .pvar in the same order as .raw SNP columns
         snp = pvar_to_snp(pvar_path, raw_snp_cols)
         snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
     elif os.path.exists(bim_path):
-        # 3) Build SNP metadata from .bim in the same order as .raw SNP columns
         snp = bim_to_snp(bim_path, raw_snp_cols)
         snp.to_csv(os.path.join(args.outdir, "snp.tsv"), sep="\t", index=False)
 
-    # 4) Use the snp.tsv IDs (NOT raw column names) for simulation truth
     snp_ids = snp["snp_id"].astype(str).tolist()
 
-    # 5) Simulate phenotype + causal truth (stores SNP IDs + indices)
     pheno, truth = simulate_pheno_from_geno(
         G,
         iids,

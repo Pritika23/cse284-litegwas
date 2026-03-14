@@ -19,7 +19,7 @@ def main():
     # --- sanity: required cols ---
     for c in ["chr", "pos", "beta", "p"]:
         if c not in lite.columns:
-            raise ValueError(f"LiteGWAS missing '{c}'. Columns={lite.columns.tolist()}")
+            raise ValueError(f"PyGWAS missing '{c}'. Columns={lite.columns.tolist()}")
 
     # PLINK header varies; these are common in --glm output
     # Try to find chromosome/position columns:
@@ -62,7 +62,7 @@ def main():
 
     m = m.replace([np.inf, -np.inf], np.nan).dropna(subset=["beta", "p", "BETA_P", "P_P"])
     if len(m) == 0:
-        raise ValueError("Merge produced 0 rows even on chr+pos. Check that PLINK and LiteGWAS used same variant set.")
+        raise ValueError("Merge produced 0 rows even on chr+pos. Check that PLINK and PyGWAS used same variant set.")
 
     pearson_beta = m["beta"].corr(m["BETA_P"], method="pearson")
     m["lp_lite"] = -np.log10(m["p"].clip(lower=1e-300))

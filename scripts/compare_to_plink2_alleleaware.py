@@ -62,7 +62,7 @@ def _norm_chr(x):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lite", required=True,
-                    help="LiteGWAS results TSV (results/litegwas.tsv)")
+                    help="PyGWAS results TSV (results/litegwas.tsv)")
     ap.add_argument(
         "--plink",
         required=True,
@@ -79,13 +79,11 @@ def main():
     plink = pd.read_csv(args.plink, sep=r"\s+", engine="python")
 
     if args.type == "quantitative":
-        # --- Lite requirements ---
         for c in ["chr", "pos", "beta", "p", "a1", "a2"]:
             if c not in lite.columns:
                 raise ValueError(
-                    f"LiteGWAS missing '{c}'. Columns={lite.columns.tolist()}")
+                    f"PyGWAS missing '{c}'. Columns={lite.columns.tolist()}")
 
-        # --- PLINK requirements ---
         chrom_col = None
         for cand in ["#CHROM", "CHROM", "CHR"]:
             if cand in plink.columns:
@@ -138,7 +136,7 @@ def main():
         print(f"A1 matches Lite a1: {same_as_a1}")
         print(f"A1 matches Lite a2: {same_as_a2}")
 
-        # Assume LiteGWAS beta is oriented to a2 rather than a1.
+        # Assume PyGWAS beta is oriented to a2 rather than a1.
         # If PLINK's A1 matches Lite's a1, signs are opposite and must be flipped.
         flip = (m["A1"] == m["a1"]) & (m["A1"] != m["a2"])
         m.loc[flip, "beta"] = -m.loc[flip, "beta"]
@@ -162,7 +160,7 @@ def main():
         print(f"Flipped betas: {int(flip.sum())} / {len(m)}")
         print(f"Pearson corr(beta) after allele-align: {pearson_beta:.4f}")
         print(
-            f"Pearson corr(beta) if all Lite betas flipped: {(-m['beta']).corr(m['BETA_P'], method='pearson'):.4f}")
+            f"Pearson corr(beta) if all betas flipped: {(-m['beta']).corr(m['BETA_P'], method='pearson'):.4f}")
         print(f"Spearman corr(-log10 p): {spearman_lp:.4f}")
         print(f"Top-{k} Jaccard overlap: {jacc:.4f}")
 
@@ -173,13 +171,11 @@ def main():
             logp_comp(m, logp_png)
 
     else:
-        # --- Lite requirements ---
         for c in ["chr", "pos", "or", "p", "a1", "a2", "snp_id"]:
             if c not in lite.columns:
                 raise ValueError(
-                    f"LiteGWAS missing '{c}'. Columns={lite.columns.tolist()}")
+                    f"PyGWAS missing '{c}'. Columns={lite.columns.tolist()}")
 
-        # --- PLINK requirements ---
         chrom_col = None
         for cand in ["#CHROM", "CHROM", "CHR"]:
             if cand in plink.columns:
@@ -235,7 +231,7 @@ def main():
         print(f"A1 matches Lite a1: {same_as_a1}")
         print(f"A1 matches Lite a2: {same_as_a2}")
 
-        # Assume LiteGWAS OR is oriented to a2 rather than a1.
+        # Assume PyGWAS OR is oriented to a2 rather than a1.
         # If PLINK's A1 matches Lite's a1, directions are opposite.
         flip = (m["A1"] == m["a1"]) & (m["A1"] != m["a2"])
         m.loc[flip, "or"] = 1.0 / m.loc[flip, "or"]
@@ -260,7 +256,7 @@ def main():
         print(f"Flipped odds ratios: {int(flip.sum())} / {len(m)}")
         print(f"Pearson corr(log-odds) after allele-align: {pearson_beta:.4f}")
         print(
-            f"Pearson corr(log-odds) if all Lite effects flipped: "
+            f"Pearson corr(log-odds) if all effects flipped: "
             f"{(-m['beta_lite']).corr(m['beta_plink'], method='pearson'):.4f}"
         )
         print(f"Spearman corr(-log10 p): {spearman_lp:.4f}")
