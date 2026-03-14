@@ -96,9 +96,9 @@ To run:
 
 Currently, this is not setup to use covariates, so the --covar option can be ignored.
 
-## Benchmarking LiteGWAS Against PLINK2
+## Benchmarking PyGWAS Against PLINK2
 
-To validate our implementation, we compare LiteGWAS results with the standard GWAS implementation provided by **PLINK2**. Both tools run linear regression using the same genotype data, phenotype, and covariates.
+To validate our implementation, we compare PyGWAS results with the standard GWAS implementation provided by **PLINK2**. Both tools run linear regression using the same genotype data, phenotype, and covariates.
 
 ---
 
@@ -125,7 +125,7 @@ which contains the top principal components used as covariates.
 
 ## 2. Run GWAS with PLINK2
 
-We run PLINK’s linear regression GWAS using the same phenotype and covariates used by LiteGWAS.
+We run PLINK’s linear regression GWAS using the same phenotype and covariates used by PyGWAS.
 
 ```bash
 plink2 \
@@ -164,9 +164,9 @@ gwas_results.assoc.logistic
 
 ---
 
-## 3. Run LiteGWAS
+## 3. Run PyGWAS
 
-LiteGWAS can be run using the following command:
+PyGWAS can be run using the following command:
 
 ```bash
 python -m litegwas.run \
@@ -191,7 +191,7 @@ out/real_qq.png
 
 ## 4. Compare Results
 
-We compare the results of LiteGWAS and PLINK using the provided comparison script:
+We compare the results of PyGWAS and PLINK using the provided comparison script:
 
 ```bash
 python scripts/compare_to_plink2_alleleaware.py \
@@ -215,9 +215,9 @@ The script reports:
 - Overlap among the top-ranked SNPs
 - Plots showing the correlations between the effect sizes and the negative logarithm of the p values
 
-## Runtime Benchmark: LiteGWAS vs PLINK2
+## Runtime Benchmark: PyGWAS vs PLINK2
 
-To evaluate the runtime performance of LiteGWAS, we benchmark it against **PLINK2**, a widely used and highly optimized GWAS tool written in C/C++. Both tools were run on the same dataset with identical phenotype and covariates.
+To evaluate the runtime performance of PyGWAS, we benchmark it against **PLINK2**, a widely used and highly optimized GWAS tool written in C/C++. Both tools were run on the same dataset with identical phenotype and covariates.
 
 ### Dataset
 
@@ -248,7 +248,7 @@ plink_results.y.glm.linear
 
 ---
 
-## Running LiteGWAS
+## Running PyGWAS
 
 ```bash
 /usr/bin/time -v python -m litegwas.run \
@@ -275,7 +275,7 @@ out/real_qq.png
 | Tool | Runtime | Peak Memory |
 |-----|------|------|
 | **PLINK2** | 0.20 s | ~14 MB |
-| **LiteGWAS** | 46.85 s | ~366 MB |
+| **PyGWAS** | 46.85 s | ~366 MB |
 
 
 PLINK2 is significantly faster because it is implemented in **optimized C/C++ with multithreading and efficient genotype storage formats**.
